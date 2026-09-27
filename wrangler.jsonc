@@ -55,8 +55,9 @@
 		"run_worker_first": true
 	},
 	"vars": {
-		"FREE_MODEL": "deepseek/deepseek-v4-flash",
-		"ZDR_MODEL": "moonshotai/kimi-k3",
-		"PAGES_PROJECT": "factory-sites"
+		"FREE_MODEL": "gpt-4.1-mini",
+		"ZDR_MODEL": "gpt-4.1",
+		"PAGES_PROJECT": "factory-sites",
+		"DEPLOY_TARGET": "factory-r2"
 	}
 }
