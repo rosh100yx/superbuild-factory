@@ -1,9 +1,10 @@
 {
-  "name": "factory",
-  "version": "0.1.0",
+  "name": "superbuild-factory",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Software factory: request in, deployed app out. Cloudflare Agents SDK + Workflows.",
+  "description": "A durable software factory on Cloudflare: a plain-English request goes in, a built, linted, published page comes out. Runs end to end with no credentials.",
+  "license": "MIT",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

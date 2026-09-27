@@ -10,6 +10,14 @@ Two things gate the deploy, and both are structural rather than conventional:
 1. **A SHIP verdict** from a deterministic lint — no model in the loop, so the verdict is reproducible.
 2. **An approval event** from a human. Nothing publishes without it.
 
+## Use it as a template
+
+```bash
+npm create cloudflare@latest -- --template=rosh100yx/superbuild-factory
+```
+
+Or hit **Use this template** on GitHub. Then jump to the 60-second quickstart below — it needs no keys.
+
 ---
 
 ## Run it in 60 seconds, with no API key
