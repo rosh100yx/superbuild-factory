@@ -1,0 +1,32 @@
+{
+  "name": "factory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Software factory: request in, deployed app out. Cloudflare Agents SDK + Workflows.",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "check": "tsc --noEmit",
+    "test": "vitest run",
+    "deploy": "npm run build && wrangler deploy",
+    "dry-run": "wrangler deploy --dry-run --outdir dist/worker",
+    "types": "wrangler types"
+  },
+  "dependencies": {
+    "agents": "^0.24.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.60.2",
+    "@types/node": "^26.6.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.1",
+    "vitest": "^5.0.2",
+    "wrangler": "^4.141.0"
+  }
+}

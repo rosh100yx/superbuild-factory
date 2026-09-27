@@ -1,0 +1,62 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "factory",
+	"main": "src/server/index.ts",
+	"compatibility_date": "2025-09-01",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"observability": {
+		"enabled": true
+	},
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "FACTORY_AGENT",
+				"class_name": "FactoryAgent"
+			},
+			{
+				"name": "FACTORY_INDEX",
+				"class_name": "FactoryIndex"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_sqlite_classes": [
+				"FactoryAgent",
+				"FactoryIndex"
+			]
+		}
+	],
+	"workflows": [
+		{
+			"name": "build-workflow",
+			"binding": "BUILD_WORKFLOW",
+			"class_name": "BuildWorkflow"
+		}
+	],
+	"r2_buckets": [
+		{
+			"binding": "ARTIFACTS",
+			"bucket_name": "factory-artifacts"
+		},
+		{
+			"bucket_name": "factory-artifacts",
+			"binding": "factory_artifacts",
+			"remote": true
+		}
+	],
+	"assets": {
+		"directory": "./dist/client",
+		"binding": "ASSETS",
+		"not_found_handling": "single-page-application",
+		"run_worker_first": true
+	},
+	"vars": {
+		"FREE_MODEL": "deepseek/deepseek-v4-flash",
+		"ZDR_MODEL": "moonshotai/kimi-k3",
+		"PAGES_PROJECT": "factory-sites"
+	}
+}
