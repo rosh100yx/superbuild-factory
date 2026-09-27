@@ -1,4 +1,5 @@
 import { callModel } from "../models";
+import type { ModelTarget } from "../models";
 
 export class SectionsInvalidError extends Error {
   constructor(message: string) {
@@ -36,13 +37,11 @@ export function parsePrimaryCta(sectionMap: string): string | null {
 
 export async function s2Sections(input: {
   spec: string;
-  model: string;
-  apiKey: string;
+  target: ModelTarget;
   fetchImpl?: typeof fetch;
 }): Promise<SectionsOutput> {
   const { text } = await callModel({
-    model: input.model,
-    apiKey: input.apiKey,
+    target: input.target,
     fetchImpl: input.fetchImpl,
     temperature: 0.3,
     maxTokens: 4000,

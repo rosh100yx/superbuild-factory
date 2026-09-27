@@ -6,6 +6,7 @@ export type FactorySecrets = {
   CF_API_TOKEN: string;
   CF_ACCOUNT_ID: string;
   OPENROUTER_API_KEY: string;
+  OPENAI_API_KEY: string;
   FACTORY_TOKEN: string;
 };
 

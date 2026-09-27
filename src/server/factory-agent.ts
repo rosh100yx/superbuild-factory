@@ -4,7 +4,7 @@ import type { Connection } from "agents";
 import type { Env } from "./env";
 import type { BuildBrief, BuildState } from "./types";
 import { failActiveStage, initialState, initialStages } from "./types";
-import { resolveModel } from "./models";
+import { resolveTarget } from "./models";
 import { getIndexAgent } from "./agents";
 
 export type BuildSummary = {
@@ -42,10 +42,18 @@ export class FactoryAgent extends Agent<Env, BuildState> {
   initialState: BuildState = PLACEHOLDER;
 
   @callable()
-  async create(params: { buildId: string; brief: BuildBrief }): Promise<{ buildId: string; model: string }> {
-    const model = resolveModel(params.brief.project, params.brief.policy, this.env);
-    this.setState(initialState(params.buildId, params.brief, model));
-    return { buildId: params.buildId, model };
+  async create(params: {
+    buildId: string;
+    brief: BuildBrief;
+  }): Promise<{ buildId: string; model: string; provider: string }> {
+    const target = resolveTarget(params.brief.project, params.brief.policy, this.env);
+    this.setState(initialState(params.buildId, params.brief, target.model, target.provider));
+    return { buildId: params.buildId, model: target.model, provider: target.provider };
+  }
+
+  @callable()
+  async getState(): Promise<BuildState> {
+    return this.state;
   }
 
   @callable()

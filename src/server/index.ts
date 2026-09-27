@@ -1,8 +1,9 @@
 import { routeAgentRequest } from "agents";
 
 import type { Env } from "./env";
-import { GuardrailError, resolveModel } from "./models";
-import type { BuildBrief, ModelPolicy } from "./types";
+import { GuardrailError, resolveProvider, resolveTarget } from "./models";
+import type { BuildBrief, DeployTarget, ModelPolicy } from "./types";
+import { mimeFor } from "./pages-deploy";
 import { getBuildAgent, getIndexAgent } from "./agents";
 
 export { FactoryAgent, FactoryIndex } from "./factory-agent";
@@ -39,9 +40,26 @@ export default {
     if (url.pathname === "/api/health") {
       return json({
         ok: true,
+        freeProvider: resolveProvider("free", env),
         freeModel: env.FREE_MODEL,
+        zdrProvider: resolveProvider("zdr-paid", env),
         zdrModel: env.ZDR_MODEL,
         pagesProject: env.PAGES_PROJECT,
+        deployTarget: deployTargetFor(env),
+      });
+    }
+
+    // Published sites are public: a build's output is meant to be viewed, so this
+    // sits before the auth check, not behind it.
+    const siteMatch = url.pathname.match(/^\/sites\/([^/]+)\/?(.*)$/);
+    if (siteMatch && (request.method === "GET" || request.method === "HEAD")) {
+      const buildId = decodeURIComponent(siteMatch[1]);
+      const rest = siteMatch[2] ?? "";
+      const filePath = rest.length > 0 ? rest : "index.html";
+      const object = await env.ARTIFACTS.get(`sites/${buildId}/${filePath}`);
+      if (!object) return new Response("not found", { status: 404 });
+      return new Response(object.body, {
+        headers: { "content-type": mimeFor(filePath), "cache-control": "no-store" },
       });
     }
 
@@ -59,6 +77,12 @@ export default {
       });
     }
 
+    const buildMatch = url.pathname.match(/^\/api\/builds\/([^/]+)$/);
+    if (buildMatch && request.method === "GET") {
+      const agent = await getBuildAgent(env, decodeURIComponent(buildMatch[1]));
+      return json(await agent.getState());
+    }
+
     if (url.pathname === "/api/builds") {
       if (request.method === "GET") {
         const index = await getIndexAgent(env);
@@ -74,6 +98,12 @@ export default {
     return env.ASSETS.fetch(request);
   },
 } satisfies ExportedHandler<Env>;
+
+function deployTargetFor(env: Env): DeployTarget {
+  // Widened deliberately: `wrangler types` narrows this var to its literal value.
+  const configured: string = env.DEPLOY_TARGET ?? "";
+  return configured === "cloudflare-pages" ? "cloudflare-pages" : "factory-r2";
+}
 
 async function createBuild(request: Request, env: Env): Promise<Response> {
   let body: Record<string, unknown>;
@@ -101,12 +131,13 @@ async function createBuild(request: Request, env: Env): Promise<Response> {
     request: text,
     project,
     policy,
-    deployTarget: "cloudflare-pages",
+    deployTarget: deployTargetFor(env),
+    origin: new URL(request.url).origin,
   };
 
-  let model: string;
+  let target;
   try {
-    model = resolveModel(project, policy, env);
+    target = resolveTarget(project, policy, env);
   } catch (error) {
     if (error instanceof GuardrailError) return json({ error: error.message }, 400);
     throw error;
@@ -125,9 +156,19 @@ async function createBuild(request: Request, env: Env): Promise<Response> {
     project,
     policy,
     status: "intake",
-    model,
+    model: `${target.provider}:${target.model}`,
     startedAt: Date.now(),
   });
 
-  return json({ buildId, model, policy, project }, 202);
+  return json(
+    {
+      buildId,
+      provider: target.provider,
+      model: target.model,
+      policy,
+      project,
+      deployTarget: brief.deployTarget,
+    },
+    202,
+  );
 }

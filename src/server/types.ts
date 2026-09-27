@@ -34,7 +34,7 @@ export type BuildStatus =
 
 export type ModelPolicy = "free" | "zdr-paid";
 
-export type DeployTarget = "cloudflare-pages";
+export type DeployTarget = "cloudflare-pages" | "factory-r2";
 
 export type GeneratedFile = { path: string; content: string };
 
@@ -43,6 +43,11 @@ export type BuildBrief = {
   project: string;
   policy: ModelPolicy;
   deployTarget: DeployTarget;
+  /**
+   * The origin the build was requested from. Used to build an absolute URL for the
+   * self-host deploy rail, and to verify it over HTTP.
+   */
+  origin?: string;
 };
 
 export type BuildParams = { buildId: string; brief: BuildBrief };
@@ -70,9 +75,11 @@ export type BuildState = {
     url?: string;
     project?: string;
     preview?: string;
+    target?: string;
     at?: number;
   };
   model?: string;
+  provider?: string;
   workflowId?: string;
   error?: string;
   startedAt: number;
@@ -93,6 +100,7 @@ export function initialState(
   buildId: string,
   brief: BuildBrief,
   model: string,
+  provider?: string,
 ): BuildState {
   return {
     buildId,
@@ -104,6 +112,7 @@ export function initialState(
     artifacts: {},
     deploy: {},
     model,
+    provider,
     startedAt: Date.now(),
   };
 }

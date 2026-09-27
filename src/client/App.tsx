@@ -21,7 +21,14 @@ function pathFor(view: View): string {
   return "/";
 }
 
-type Health = { ok: boolean; freeModel?: string; zdrModel?: string; pagesProject?: string };
+type Health = {
+  ok: boolean;
+  freeProvider?: string;
+  freeModel?: string;
+  zdrProvider?: string;
+  zdrModel?: string;
+  pagesProject?: string;
+};
 
 export function App() {
   const [view, setView] = useState<View>(() => parseLocation());
@@ -75,7 +82,7 @@ export function App() {
           />
           <span className={`pill ${token ? "ok" : "err"}`}>{token ? "token set" : "no token"}</span>
           <span className={`pill ${health?.ok ? "ok" : "err"}`}>
-            {health?.ok ? health.freeModel : "offline"}
+            {health?.ok ? `${health.freeProvider ?? "?"}:${health.freeModel ?? "?"}` : "offline"}
           </span>
         </div>
       </header>

@@ -1,4 +1,5 @@
 import { callModel } from "../models";
+import type { ModelTarget } from "../models";
 import type { GeneratedFile } from "../types";
 import { REQUIRED_FILES } from "../lint";
 
@@ -81,13 +82,11 @@ export function validateFiles(files: GeneratedFile[]): void {
 export async function s3Build(input: {
   spec: string;
   sectionMap: string;
-  model: string;
-  apiKey: string;
+  target: ModelTarget;
   fetchImpl?: typeof fetch;
 }): Promise<BuildOutput> {
   const { text } = await callModel({
-    model: input.model,
-    apiKey: input.apiKey,
+    target: input.target,
     fetchImpl: input.fetchImpl,
     temperature: 0.4,
     maxTokens: 16000,

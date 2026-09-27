@@ -1,4 +1,5 @@
 import { callModel } from "../models";
+import type { ModelTarget } from "../models";
 
 export class BriefTooVagueError extends Error {
   constructor(message: string) {
@@ -57,13 +58,11 @@ export function validateSpec(spec: string): SpecValidation {
 export async function s1Brief(input: {
   request: string;
   project: string;
-  model: string;
-  apiKey: string;
+  target: ModelTarget;
   fetchImpl?: typeof fetch;
 }): Promise<BriefOutput> {
   const { text } = await callModel({
-    model: input.model,
-    apiKey: input.apiKey,
+    target: input.target,
     fetchImpl: input.fetchImpl,
     temperature: 0.3,
     maxTokens: 4000,

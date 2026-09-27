@@ -114,6 +114,7 @@ export function BuildDetail({ buildId, onOpenLedger }: { buildId: string; onOpen
       <div className="row-flex" style={{ marginBottom: 18 }}>
         <span className="pill">project: {state.project}</span>
         <span className="pill">policy: {state.policy}</span>
+        {state.provider && <span className="pill">provider: {state.provider}</span>}
         {state.model && <span className="pill">model: {state.model}</span>}
         {state.workflowId && <span className="pill">wf: {state.workflowId.slice(0, 12)}</span>}
       </div>

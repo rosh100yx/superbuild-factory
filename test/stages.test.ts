@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
+import { OPENROUTER_URL } from "../src/server/models";
+import type { ModelTarget } from "../src/server/models";
 import { BriefTooVagueError, countBeats, parseOutcome, s1Brief, validateSpec } from "../src/server/stages/s1-brief";
 import { SectionsInvalidError, countSections, parsePrimaryCta, s2Sections } from "../src/server/stages/s2-sections";
 import { BuildOutputError, parseDelimitedFiles, s3Build, validateFiles } from "../src/server/stages/s3-build";
@@ -35,6 +37,14 @@ function modelResponse(content: string) {
   return new Response(JSON.stringify({ choices: [{ message: { content } }] }), { status: 200 });
 }
 
+const TARGET: ModelTarget = {
+  provider: "openrouter",
+  baseUrl: OPENROUTER_URL,
+  keyName: "OPENROUTER_API_KEY",
+  apiKey: "k",
+  model: "m",
+};
+
 describe("s1Brief validation", () => {
   it("accepts a spec with an outcome and five beats", () => {
     const result = validateSpec(GOOD_SPEC);
@@ -69,8 +79,7 @@ describe("s1Brief validation", () => {
       s1Brief({
         request: "make me a site",
         project: "superbuild",
-        model: "m",
-        apiKey: "k",
+        target: TARGET,
         fetchImpl: fetchImpl as unknown as typeof fetch,
       }),
     ).rejects.toThrow(BriefTooVagueError);
@@ -81,8 +90,7 @@ describe("s1Brief validation", () => {
     const result = await s1Brief({
       request: "landing page for the cohort",
       project: "superbuild",
-      model: "m",
-      apiKey: "k",
+      target: TARGET,
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     expect(result.beats).toBe(5);
@@ -99,14 +107,14 @@ describe("s2Sections", () => {
   it("rejects a map with too few sections", async () => {
     const fetchImpl = vi.fn(async () => modelResponse("1. Hero\n\nPrimary CTA: Go"));
     await expect(
-      s2Sections({ spec: GOOD_SPEC, model: "m", apiKey: "k", fetchImpl: fetchImpl as unknown as typeof fetch }),
+      s2Sections({ spec: GOOD_SPEC, target: TARGET, fetchImpl: fetchImpl as unknown as typeof fetch }),
     ).rejects.toThrow(SectionsInvalidError);
   });
 
   it("rejects a map with no CTA line", async () => {
     const fetchImpl = vi.fn(async () => modelResponse("1. a\n2. b\n3. c\n4. d"));
     await expect(
-      s2Sections({ spec: GOOD_SPEC, model: "m", apiKey: "k", fetchImpl: fetchImpl as unknown as typeof fetch }),
+      s2Sections({ spec: GOOD_SPEC, target: TARGET, fetchImpl: fetchImpl as unknown as typeof fetch }),
     ).rejects.toThrow(/Primary CTA/);
   });
 
@@ -114,8 +122,7 @@ describe("s2Sections", () => {
     const fetchImpl = vi.fn(async () => modelResponse(GOOD_MAP));
     const result = await s2Sections({
       spec: GOOD_SPEC,
-      model: "m",
-      apiKey: "k",
+      target: TARGET,
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     expect(result.sectionCount).toBe(4);
@@ -175,8 +182,7 @@ body { color: red; }
     const result = await s3Build({
       spec: GOOD_SPEC,
       sectionMap: GOOD_MAP,
-      model: "m",
-      apiKey: "k",
+      target: TARGET,
       fetchImpl: fetchImpl as unknown as typeof fetch,
     });
     expect(result.files).toHaveLength(3);

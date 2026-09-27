@@ -5,7 +5,7 @@ import type { FactoryAgent } from "./factory-agent";
 import type { Env } from "./env";
 import type { BuildParams, BuildState, StageId, StageRecord } from "./types";
 import { initialStages } from "./types";
-import { resolveModel } from "./models";
+import { resolveTarget } from "./models";
 import { s1Brief } from "./stages/s1-brief";
 import { s2Sections, parsePrimaryCta } from "./stages/s2-sections";
 import { s3Build } from "./stages/s3-build";
@@ -47,8 +47,7 @@ export class BuildWorkflow extends AgentWorkflow<FactoryAgent, BuildParams, Buil
     const { buildId, brief } = event.payload;
 
     // Throws GuardrailError if a client project is paired with a free model.
-    const model = resolveModel(brief.project, brief.policy, env);
-    const apiKey = env.OPENROUTER_API_KEY;
+    const target = resolveTarget(brief.project, brief.policy, env);
 
     const stages: Record<StageId, StageRecord> = initialStages();
     const artifacts: BuildState["artifacts"] = {};
@@ -62,7 +61,11 @@ export class BuildWorkflow extends AgentWorkflow<FactoryAgent, BuildParams, Buil
       await this.reportProgress({ step: id, status, message, percent: PERCENT[id] });
     };
 
-    await step.mergeAgentState({ status: "running", model });
+    await step.mergeAgentState({
+      status: "running",
+      model: target.model,
+      provider: target.provider,
+    });
 
     // ---- S1 brief -----------------------------------------------------------
     await record("S1", { status: "running" });
@@ -72,8 +75,7 @@ export class BuildWorkflow extends AgentWorkflow<FactoryAgent, BuildParams, Buil
       const out = await s1Brief({
         request: brief.request,
         project: brief.project,
-        model,
-        apiKey,
+        target,
       });
       return { out, ms: Date.now() - t0 };
     });
@@ -89,7 +91,7 @@ export class BuildWorkflow extends AgentWorkflow<FactoryAgent, BuildParams, Buil
     await say("S2", "running", "mapping narrative beats to sections");
     const s2 = await step.do("s2-sections", RETRY, async () => {
       const t0 = Date.now();
-      const out = await s2Sections({ spec: s1.out.spec, model, apiKey });
+      const out = await s2Sections({ spec: s1.out.spec, target });
       return { out, ms: Date.now() - t0 };
     });
     const sectionMapKey = `builds/${buildId}/section-map.md`;
@@ -112,8 +114,7 @@ export class BuildWorkflow extends AgentWorkflow<FactoryAgent, BuildParams, Buil
       const out = await s3Build({
         spec: s1.out.spec,
         sectionMap: s2.out.sectionMap,
-        model,
-        apiKey,
+        target,
       });
       return { out, ms: Date.now() - t0 };
     });
@@ -191,16 +192,26 @@ export class BuildWorkflow extends AgentWorkflow<FactoryAgent, BuildParams, Buil
 
     // ---- S5 deploy ----------------------------------------------------------
     await record("S5", { status: "running", note: "deploying" });
-    await say("S5", "running", "uploading to Cloudflare Pages");
+    await say(
+      "S5",
+      "running",
+      brief.deployTarget === "factory-r2"
+        ? "publishing into the factory bucket"
+        : "uploading to Cloudflare Pages",
+    );
     const s5 = await step.do("s5-deploy", RETRY, async () => {
       const t0 = Date.now();
       const result = await s5Deploy({
+        target: brief.deployTarget,
+        buildId,
+        files: s3.out.files,
+        site: { ARTIFACTS: env.ARTIFACTS },
         pages: {
           accountId: env.CF_ACCOUNT_ID,
           apiToken: env.CF_API_TOKEN,
           project: env.PAGES_PROJECT,
         },
-        files: s3.out.files,
+        origin: brief.origin,
         branch: buildId,
         mustContain: cta,
       });
@@ -214,6 +225,7 @@ export class BuildWorkflow extends AgentWorkflow<FactoryAgent, BuildParams, Buil
         url: s5.result.url,
         preview: s5.result.preview,
         project: env.PAGES_PROJECT,
+        target: s5.result.target,
         at: Date.now(),
       },
       endedAt: Date.now(),
