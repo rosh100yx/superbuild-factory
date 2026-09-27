@@ -106,4 +106,37 @@ describe("callModel", () => {
       }),
     ).rejects.toThrow(/empty completion/);
   });
+
+  it("refuses to call at all without a key, naming the variable and not calling out", async () => {
+    const fetchImpl = vi.fn();
+
+    await expect(
+      callModel({
+        model: "m",
+        apiKey: "",
+        messages: [{ role: "user", content: "hi" }],
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+      }),
+    ).rejects.toThrow(/OPENROUTER_API_KEY/);
+
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it("translates a provider 401 into something actionable", async () => {
+    const fetchImpl = vi.fn(
+      async () =>
+        new Response('{"error":{"message":"Missing Authentication header","code":401}}', {
+          status: 401,
+        }),
+    );
+
+    await expect(
+      callModel({
+        model: "m",
+        apiKey: "invalid",
+        messages: [{ role: "user", content: "hi" }],
+        fetchImpl: fetchImpl as unknown as typeof fetch,
+      }),
+    ).rejects.toThrow(/OPENROUTER_API_KEY is set and valid/);
+  });
 });

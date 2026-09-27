@@ -82,6 +82,17 @@ export type CallModelResult = {
 export async function callModel(options: CallModelOptions): Promise<CallModelResult> {
   const doFetch = options.fetchImpl ?? fetch;
 
+  // Fail fast with something actionable. "Missing Authentication header" from the
+  // provider is accurate but says nothing about which key to set.
+  if (!options.apiKey || !options.apiKey.trim()) {
+    throw new ModelCallError(
+      "No model API key configured. Set OPENROUTER_API_KEY — " +
+        "`npx wrangler secret put OPENROUTER_API_KEY` for a deployed worker, " +
+        "or add it to .dev.vars for local dev.",
+      401,
+    );
+  }
+
   const response = await doFetch(OPENROUTER_URL, {
     method: "POST",
     headers: {
@@ -99,6 +110,22 @@ export async function callModel(options: CallModelOptions): Promise<CallModelRes
   const bodyText = await response.text();
 
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      throw new ModelCallError(
+        `Model provider rejected the credentials (${response.status}). ` +
+          `Check that OPENROUTER_API_KEY is set and valid. Provider said: ${bodyText.slice(0, 200)}`,
+        response.status,
+      );
+    }
+    if (response.status === 402) {
+      throw new ModelCallError(
+        `Model provider says the account has insufficient credits (402) for "${options.model}". ` +
+          `Either add credits, or set FREE_MODEL to a free-tier model id (check ` +
+          `https://openrouter.ai/models?max_price=0) — OPENROUTER_API_KEY stays the same. ` +
+          `Provider said: ${bodyText.slice(0, 200)}`,
+        response.status,
+      );
+    }
     throw new ModelCallError(
       `Model call failed (${response.status}): ${bodyText.slice(0, 500)}`,
       response.status,

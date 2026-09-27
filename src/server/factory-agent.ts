@@ -3,7 +3,7 @@ import type { Connection } from "agents";
 
 import type { Env } from "./env";
 import type { BuildBrief, BuildState } from "./types";
-import { initialState, initialStages } from "./types";
+import { failActiveStage, initialState, initialStages } from "./types";
 import { resolveModel } from "./models";
 import { getIndexAgent } from "./agents";
 
@@ -101,7 +101,9 @@ export class FactoryAgent extends Agent<Env, BuildState> {
     _workflowId: string,
     error: string,
   ): Promise<void> {
-    this.setState({ ...this.state, status: "failed", error, endedAt: Date.now() });
+    // A failed build must not leave a stage spinning.
+    const stages = failActiveStage(this.state.stages, error);
+    this.setState({ ...this.state, stages, status: "failed", error, endedAt: Date.now() });
     await this.syncIndex();
   }
 

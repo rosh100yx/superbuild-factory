@@ -107,3 +107,22 @@ export function initialState(
     startedAt: Date.now(),
   };
 }
+
+/**
+ * A build that errored must not leave a stage spinning. Without this, the console
+ * shows `failed` next to a stage still marked `running` — a rail that lies about a
+ * run that already stopped.
+ */
+export function failActiveStage(
+  stages: Record<StageId, StageRecord>,
+  reason: string,
+): Record<StageId, StageRecord> {
+  const next = { ...stages };
+  const active = STAGE_IDS.find(
+    (id) => next[id].status === "running" || next[id].status === "awaiting-approval",
+  );
+  if (active) {
+    next[active] = { ...next[active], status: "failed", note: reason.slice(0, 160) };
+  }
+  return next;
+}
